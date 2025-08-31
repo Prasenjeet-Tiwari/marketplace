@@ -7,7 +7,7 @@ export default function Collection() {
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // frontend-only options (until backend provides them)
+  // frontend-only options
   const sizes = ["S", "M", "L", "XL", "XXL"];
   const colors = ["#000000", "#5B21B6", "#FFFFFF"];
 
@@ -23,11 +23,17 @@ export default function Collection() {
         setLoading(true);
         const res = await fetch(`http://localhost:5000/product/${productId}`);
         const data = await res.json();
-        setProduct(data);
 
-        // set first image as default
-        if (data.orderImages?.length > 0) {
-          setMainImage(data.orderImages[0]);
+        // If backend sends an error instead of product
+        if (data.error) {
+          setProduct(null);
+        } else {
+          setProduct(data);
+
+          // set first image as default (if available)
+          if (data.orderImages?.length > 0) {
+            setMainImage(data.orderImages[0]);
+          }
         }
       } catch (err) {
         console.error("❌ Error fetching product:", err);
@@ -45,8 +51,8 @@ export default function Collection() {
       const items = [
         {
           productId,
-          name: product.name,
-          price: product.price,
+          name: product?.name,
+          price: product?.price,
           quantity,
           size: selectedSize,
           color: selectedColor,
@@ -75,6 +81,10 @@ export default function Collection() {
   if (loading) return <p className="text-white text-center mt-20">Loading product...</p>;
   if (!product) return <p className="text-white text-center mt-20">❌ Product not found</p>;
 
+  // helper for safe image URLs
+  const getImageUrl = (img) =>
+    img?.startsWith("http") ? img : `http://localhost:5000/uploads/${img}`;
+
   return (
     <div className="mx-auto max-w-screen-xl px-4 sm:px-6 lg:px-8 text-white">
       {/* ======= TOP PRODUCT AREA ======= */}
@@ -82,11 +92,17 @@ export default function Collection() {
         <div className="grid lg:grid-cols-2 gap-10" style={{ minHeight: "calc(100vh - 150px)" }}>
           {/* LEFT: Product Images */}
           <div className="flex flex-col items-center lg:sticky top-[150px]">
-            {/* Main image */}
-            {mainImage && (
+            {/* Main image or placeholder */}
+            {mainImage ? (
               <img
-                src={mainImage}
+                src={getImageUrl(mainImage)}
                 alt={product.name}
+                className="w-full max-w-[420px] h-auto mb-4 rounded-lg"
+              />
+            ) : (
+              <img
+                src="https://via.placeholder.com/420x420?text=No+Image"
+                alt="No product image"
                 className="w-full max-w-[420px] h-auto mb-4 rounded-lg"
               />
             )}
@@ -102,7 +118,11 @@ export default function Collection() {
                       mainImage === img ? "border-white" : "border-transparent"
                     }`}
                   >
-                    <img src={img} alt={`preview-${idx}`} className="w-20 h-20 object-cover" />
+                    <img
+                      src={getImageUrl(img)}
+                      alt={`preview-${idx}`}
+                      className="w-20 h-20 object-cover"
+                    />
                   </button>
                 ))}
               </div>
@@ -117,8 +137,10 @@ export default function Collection() {
             {/* Title */}
             <h1 className="text-[36px] font-extrabold mb-2">{product.name}</h1>
 
-            {/* Description */}
-            <p className="text-[20px] leading-[28px] mb-8">{product.description}</p>
+            {/* ✅ Description (with fallback) */}
+            <p className="text-[20px] leading-[28px] mb-8">
+              {product.description || "No description available"}
+            </p>
 
             {/* Size + Quantity */}
             <div className="mt-6 flex flex-wrap items-start gap-8">
@@ -212,4 +234,3 @@ export default function Collection() {
     </div>
   );
 }
-

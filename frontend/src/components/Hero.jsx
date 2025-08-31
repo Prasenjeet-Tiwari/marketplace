@@ -70,7 +70,7 @@ export default function Hero() {
           </div>
 
           {/* Save collection button (SVG): fades in on hover */}
-          <Link to="/collection/:productID">
+          <Link to="/collection/GDG002">
           <img
             src={saveCollectionSvg}
             alt="Save collection"
